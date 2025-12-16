@@ -102,3 +102,5 @@ docs/_build/
 # Windows
 Thumbs.db
 ehthumbs.db
+
+data/
