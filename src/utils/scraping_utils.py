@@ -10,3 +10,8 @@ class ScrapingUtils:
         """ Trae todas las URLs de un sitio web """
         url_list = self.firecrawl.map(url=url)
         return get_urls_from_firecrawl_map(url_list)
+
+    def get_data_from_website(self, url: str):
+        """ Trae los datos de un sitio web """
+        doc = self.firecrawl.scrape(url=url, formats=["markdown", "html"])
+        return doc
