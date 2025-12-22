@@ -13,5 +13,5 @@ class ScrapingUtils:
 
     def get_data_from_website(self, url: str):
         """ Trae los datos de un sitio web """
-        doc = self.firecrawl.scrape(url=url, formats=["markdown", "html"])
+        doc = self.firecrawl.scrape(url=url, formats=["markdown", "html", "links", "images"])
         return doc
