@@ -19,6 +19,16 @@ sys.path.append(str(Path(__file__).parent.parent))
 from config.paths import SRC_DIR
 from utils.scraping_utils import ScrapingUtils
 
+def sanitize_folder_name(name):
+    """
+    Remueve caracteres no válidos en nombres de archivos y carpetas, incluyendo saltos de línea.
+    """
+    # Reemplaza \ / : * ? " < > | y quita saltos de línea/tabuladores
+    name = re.sub(r'[\\/:*?"<>|]', "", name)
+    name = name.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+    # Quita espacios iniciales/finales y múltiples espacios juntos
+    name = re.sub(r'\s+', ' ', name).strip()
+    return name
 
 def extract_image_and_pdf_links_from_markdown(markdown_text):
     """
@@ -215,6 +225,9 @@ def process_url(url, scraping_utils, brand_to_scrape="Fratelli"):
             print(f"  ⚠️  No se pudo extraer el título del producto. Usando nombre genérico.")
             product_title = url.split("/")[-1].replace("-", " ").title()
 
+        # Sanitizar el título para ser usado como carpeta
+        safe_product_title = sanitize_folder_name(product_title)
+
         print(f"  Título: {product_title}")
 
         # Extraer links de imágenes y PDFs
@@ -239,8 +252,8 @@ def process_url(url, scraping_utils, brand_to_scrape="Fratelli"):
         print(f"  Imágenes encontradas: {len(imagenes)}")
         print(f"  PDFs encontrados: {len(pdfs)}")
 
-        # Crear carpeta de destino
-        destination_folder = os.path.join(SRC_DIR, "data", "scraped_data_downloaded", product_title)
+        # Crear carpeta de destino (usando el título ya saneado)
+        destination_folder = os.path.join(SRC_DIR, "data", "scraped_data_downloaded", safe_product_title)
 
         # Descargar archivos
         if pdfs:
@@ -327,13 +340,9 @@ Ejemplos de uso:
     # Determinar URLs a procesar
     # Lista predefinida de URLs (se usa si no se proporciona --url)
     urls_predefinidas = [
-        "https://vespa-colombia.com/vespa-gtv-300",
-        "https://vespa-colombia.com/vespa-gts-super-300-tech",
-        "https://vespa-colombia.com/vespa-gts-300-super-sport",
-        "https://vespa-colombia.com/vespa-gts-310",
-        "https://vespa-colombia.com/vespa-primavera-150",
-        "https://vespa-colombia.com/vespa-vxl-150",
-        "https://vespa-colombia.com/vespa-gts-300"
+        "https://piaggio-colombia.com/piaggio-beverly-s-400",
+        "https://piaggio-colombia.com/piaggio-1-active",
+        "https://piaggio-colombia.com/piaggio-mymoover"
     ]
 
     if args.url:
