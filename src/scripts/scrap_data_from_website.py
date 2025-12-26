@@ -23,12 +23,38 @@ def sanitize_folder_name(name):
     """
     Remueve caracteres no válidos en nombres de archivos y carpetas, incluyendo saltos de línea.
     """
-    # Reemplaza \ / : * ? " < > | y quita saltos de línea/tabuladores
-    name = re.sub(r'[\\/:*?"<>|]', "", name)
+    if not name:
+        return "sin_titulo"
+    # Primero reemplaza saltos de línea y caracteres de control
     name = name.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+    # Reemplaza \ / : * ? " < > | (caracteres no válidos en Windows)
+    name = re.sub(r'[\\/:*?"<>|]', "", name)
     # Quita espacios iniciales/finales y múltiples espacios juntos
     name = re.sub(r'\s+', ' ', name).strip()
+    # Si quedó vacío después de limpiar, usar nombre genérico
+    if not name:
+        return "sin_titulo"
     return name
+
+
+def sanitize_filename(filename):
+    """
+    Limpia el nombre de archivo removiendo parámetros de consulta y caracteres inválidos.
+    """
+    if not filename:
+        return "archivo"
+    # Remover parámetros de consulta (todo después de ? o &)
+    filename = filename.split('?')[0].split('&')[0]
+    # Remover fragmentos (todo después de #)
+    filename = filename.split('#')[0]
+    # Remover caracteres no válidos en Windows
+    filename = re.sub(r'[\\/:*?"<>|]', "", filename)
+    # Limpiar espacios
+    filename = re.sub(r'\s+', '_', filename).strip()
+    # Si quedó vacío, usar nombre genérico
+    if not filename:
+        return "archivo"
+    return filename
 
 def extract_image_and_pdf_links_from_markdown(markdown_text):
     """
@@ -176,7 +202,9 @@ def download_files(list_urls, destination_folder):
 
     for url in list_urls:
         try:
-            filename = url.split("/")[-1]
+            # Extraer nombre de archivo de la URL y limpiarlo
+            raw_filename = url.split("/")[-1]
+            filename = sanitize_filename(raw_filename)
             full_path = os.path.join(destination_folder, filename)
 
             # Si ya existe, no descargar de nuevo
@@ -340,9 +368,10 @@ Ejemplos de uso:
     # Determinar URLs a procesar
     # Lista predefinida de URLs (se usa si no se proporciona --url)
     urls_predefinidas = [
-        "https://piaggio-colombia.com/piaggio-beverly-s-400",
-        "https://piaggio-colombia.com/piaggio-1-active",
-        "https://piaggio-colombia.com/piaggio-mymoover"
+    'https://mobulaa-colombia.com/products/moto-electrica-hercules',
+    'https://mobulaa-colombia.com/products/moto-electrica-man5',
+    'https://mobulaa-colombia.com/products/moto-electrica-man4',
+    'https://mobulaa-colombia.com/products/moto-electrica-man3',
     ]
 
     if args.url:
