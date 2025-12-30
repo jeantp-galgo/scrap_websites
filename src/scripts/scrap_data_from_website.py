@@ -143,18 +143,18 @@ def extract_image_and_pdf_links(data_scraped):
     all_links = []
 
     # 1. Usar las imágenes ya extraídas por Firecrawl (si están disponibles)
-    if hasattr(data_scraped, 'images') and data_scraped.images:
-        all_links.extend(data_scraped.images)
+    # if hasattr(data_scraped, 'images') and data_scraped.images:
+    #     all_links.extend(data_scraped.images)
 
     # 2. Extraer del markdown
-    if hasattr(data_scraped, 'markdown') and data_scraped.markdown:
-        markdown_links = extract_image_and_pdf_links_from_markdown(data_scraped.markdown)
-        all_links.extend(markdown_links)
+    # if hasattr(data_scraped, 'markdown') and data_scraped.markdown:
+    #     markdown_links = extract_image_and_pdf_links_from_markdown(data_scraped.markdown)
+    #     all_links.extend(markdown_links)
 
-    # 3. Extraer del HTML
-    if hasattr(data_scraped, 'html') and data_scraped.html:
-        html_links = extract_image_and_pdf_links_from_html(data_scraped.html)
-        all_links.extend(html_links)
+    # # 3. Extraer del HTML
+    # if hasattr(data_scraped, 'html') and data_scraped.html:
+    #     html_links = extract_image_and_pdf_links_from_html(data_scraped.html)
+    #     all_links.extend(html_links)
 
     # Normalizar URLs (convertir relativas a absolutas si es necesario)
     # y eliminar duplicados
@@ -180,6 +180,71 @@ def extract_product_title(html_content):
     title_element = soup.find('h1')
     product_title = title_element.get_text(strip=True) if title_element else None
     return product_title
+
+
+def extract_price_from_json(data_scraped):
+    """
+    Extrae información de precios y colores del campo JSON retornado por Firecrawl.
+
+    Returns:
+        tuple: (precio_base, precio_neto, colores) o (None, None, None) si no se encuentran
+    """
+    precio_base = None
+    precio_neto = None
+    colores = None
+
+    try:
+        # Verificar si existe el campo json en data_scraped
+        if hasattr(data_scraped, 'json') and data_scraped.json:
+            price_data = data_scraped.json
+
+            # Si es un string, intentar parsearlo como JSON
+            if isinstance(price_data, str):
+                try:
+                    price_data = json.loads(price_data)
+                except json.JSONDecodeError:
+                    pass
+
+            # Si es un diccionario, extraer los valores
+            if isinstance(price_data, dict):
+                # Buscar precio_base (puede estar en diferentes keys)
+                for key in ['precio_base', 'precioBase', 'precio_base', 'base_price', 'price_base']:
+                    if key in price_data and price_data[key] is not None:
+                        try:
+                            precio_base = float(price_data[key])
+                            break
+                        except (ValueError, TypeError):
+                            continue
+
+                # Buscar precio_neto (puede estar en diferentes keys)
+                for key in ['precio_neto', 'precioNeto', 'precio_neto', 'net_price', 'price_net', 'final_price']:
+                    if key in price_data and price_data[key] is not None:
+                        try:
+                            precio_neto = float(price_data[key])
+                            break
+                        except (ValueError, TypeError):
+                            continue
+
+                # Buscar colores (puede estar en diferentes keys)
+                for key in ['colores', 'colors', 'color', 'colores_disponibles', 'available_colors']:
+                    if key in price_data and price_data[key] is not None:
+                        colores_value = price_data[key]
+                        # Si es una lista, usarla directamente
+                        if isinstance(colores_value, list):
+                            colores = colores_value
+                            break
+                        # Si es un string, intentar convertirlo a lista
+                        elif isinstance(colores_value, str):
+                            # Si tiene comas, separar por comas
+                            if ',' in colores_value:
+                                colores = [c.strip() for c in colores_value.split(',')]
+                            else:
+                                colores = [colores_value.strip()]
+                            break
+    except Exception as e:
+        print(f"  ⚠️  Error al extraer precios y colores del JSON: {e}")
+
+    return precio_base, precio_neto, colores
 
 
 def download_files(list_urls, destination_folder):
@@ -235,15 +300,26 @@ def download_files(list_urls, destination_folder):
 def process_url(url, scraping_utils, brand_to_scrape="Fratelli"):
     """
     Procesa una URL individual: extrae datos, descarga imágenes y PDFs.
+    Retorna un diccionario con la información del producto.
     """
     print(f"\n{'='*60}")
     print(f"Procesando: {url}")
     print(f"{'='*60}")
 
+    # Inicializar diccionario con datos del producto
+    product_data = {
+        "Marca": brand_to_scrape,
+        "Modelo": None,
+        "Precio base": None,
+        "Precio neto": None,
+        "Colores": None,
+        "URL": url
+    }
+
     try:
-        # Obtener datos del sitio web
+        # Obtener datos del sitio web (incluyendo extracción de precios)
         print("Obteniendo datos del sitio web...")
-        data_scraped = scraping_utils.get_data_from_website(url)
+        data_scraped = scraping_utils.get_data_from_website(url, extract_prices=True)
 
         # Extraer título del producto
         print("Extrayendo título del producto...")
@@ -256,7 +332,28 @@ def process_url(url, scraping_utils, brand_to_scrape="Fratelli"):
         # Sanitizar el título para ser usado como carpeta
         safe_product_title = sanitize_folder_name(product_title)
 
+        # Guardar modelo en los datos del producto
+        product_data["Modelo"] = product_title
+
         print(f"  Título: {product_title}")
+
+        # Extraer información de precios y colores
+        print("Extrayendo información de precios y colores...")
+        precio_base, precio_neto, colores = extract_price_from_json(data_scraped)
+        product_data["Precio base"] = precio_base
+        product_data["Precio neto"] = precio_neto
+        product_data["Colores"] = colores
+
+        if precio_base:
+            print(f"  Precio base: ${precio_base:,.0f}")
+        if precio_neto:
+            print(f"  Precio neto: ${precio_neto:,.0f}")
+        if colores:
+            print(f"  Colores: {', '.join(colores)}")
+        if not precio_base and not precio_neto:
+            print(f"  ⚠️  No se encontraron precios")
+        if not colores:
+            print(f"  ⚠️  No se encontraron colores")
 
         # Extraer links de imágenes y PDFs
         print("Extrayendo links de imágenes y PDFs...")
@@ -295,13 +392,13 @@ def process_url(url, scraping_utils, brand_to_scrape="Fratelli"):
         print(f"\n✅ Proceso completado para: {product_title}")
         print(f"   Archivos guardados en: {destination_folder}")
 
-        return True
+        return product_data
 
     except Exception as e:
         print(f"\n❌ Error al procesar {url}: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        return product_data  # Retornar datos parciales incluso si hay error
 
 
 def load_urls_from_json(json_path):
@@ -340,7 +437,7 @@ Ejemplos de uso:
     parser.add_argument(
         '--brand',
         type=str,
-        default='Fratelli',
+        default='CF Moto',
         help='Marca del producto (default: Fratelli)'
     )
 
@@ -368,10 +465,26 @@ Ejemplos de uso:
     # Determinar URLs a procesar
     # Lista predefinida de URLs (se usa si no se proporciona --url)
     urls_predefinidas = [
-    'https://mobulaa-colombia.com/products/moto-electrica-hercules',
-    'https://mobulaa-colombia.com/products/moto-electrica-man5',
-    'https://mobulaa-colombia.com/products/moto-electrica-man4',
-    'https://mobulaa-colombia.com/products/moto-electrica-man3',
+        "https://cfmotocolombia.com/motos-cfmotos/450mt-sport",
+        "https://cfmotocolombia.com/motos-cfmotos/450mt-rally",
+        "https://cfmotocolombia.com/motos-cfmotos/300sr-s",
+        "https://cfmotocolombia.com/motos-cfmotos/800-mt-x",
+        "https://cfmotocolombia.com/motos-cfmotos/450clc-bobber",
+        "https://cfmotocolombia.com/motos-cfmotos/250-sr-fun",
+        "https://cfmotocolombia.com/motos-cfmotos/xo-papio-trail",
+        "https://cfmotocolombia.com/motos-cfmotos/450sr-s",
+        "https://cfmotocolombia.com/motos-cfmotos/250clx",
+        "https://cfmotocolombia.com/motos-cfmotos/300clx",
+        "https://cfmotocolombia.com/motos-cfmotos/675nk",
+        "https://cfmotocolombia.com/motos-cfmotos/zeeho-ae8-plus",
+        "https://cfmotocolombia.com/motos-cfmotos/250nk-fun",
+        "https://cfmotocolombia.com/motos-cfmotos/450-clc",
+        "https://cfmotocolombia.com/motos-cfmotos/700clx-a",
+        "https://cfmotocolombia.com/motos-cfmotos/700clx-h",
+        "https://cfmotocolombia.com/motos-cfmotos/800nk-high",
+        "https://cfmotocolombia.com/motos-cfmotos/675-sr-r",
+        "https://cfmotocolombia.com/motos-cfmotos/cx-2e",
+        "https://cfmotocolombia.com/motos-cfmotos/cx-5e"
     ]
 
     if args.url:
@@ -403,12 +516,27 @@ Ejemplos de uso:
     # Procesar cada URL
     successful = 0
     failed = 0
+    products_data = []  # Lista para acumular datos de productos
 
     for url in urls_to_process:
-        if process_url(url, scraping_utils, args.brand):
+        product_data = process_url(url, scraping_utils, args.brand)
+
+        if product_data.get("Modelo"):  # Si se extrajo al menos el modelo
+            products_data.append(product_data)
             successful += 1
         else:
             failed += 1
+
+    # Exportar datos a JSON
+    if products_data:
+        output_file = os.path.join(SRC_DIR, "data", "scraped_data_downloaded",
+                                   f"{args.brand}_precios.json")
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(products_data, f, ensure_ascii=False, indent=2)
+            print(f"\n📄 Datos de precios exportados a: {output_file}")
+        except Exception as e:
+            print(f"\n⚠️  Error al exportar datos a JSON: {e}")
 
     # Resumen final
     print(f"\n{'='*60}")
@@ -417,6 +545,7 @@ Ejemplos de uso:
     print(f"✅ Procesadas exitosamente: {successful}")
     print(f"❌ Fallidas: {failed}")
     print(f"📊 Total: {len(urls_to_process)}")
+    print(f"📄 Productos con datos: {len(products_data)}")
 
 
 if __name__ == "__main__":
