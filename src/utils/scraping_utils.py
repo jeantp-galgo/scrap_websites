@@ -29,5 +29,63 @@ class ScrapingUtils:
             }
             formats.append(price_prompt)
 
-        doc = self.firecrawl.scrape(url=url, formats=formats)
+        # Configurar acciones para mejorar la carga de contenido lazy-load
+        # Hacer scroll hacia abajo para activar la carga de imágenes lazy-load
+        actions = [
+            {"type": "scroll", "direction": "down"},  # Scroll inicial
+            {"type": "wait", "milliseconds": 2000},  # Esperar 2 segundos después del scroll
+            {"type": "scroll", "direction": "down"},  # Scroll adicional
+            {"type": "wait", "milliseconds": 2000},  # Esperar otros 2 segundos
+        ]
+
+        # Opciones de scraping mejoradas
+        doc = self.firecrawl.scrape(
+            url=url,
+            formats=formats,
+            wait_for=3000,  # Esperar 3 segundos iniciales para que la página cargue
+            timeout=120000,  # Aumentar timeout a 120 segundos (2 minutos) para páginas lentas
+            only_main_content=True,  # Enfocarse solo en el contenido principal (elimina headers, footers, sidebars)
+            block_ads=True,  # Bloquear anuncios que pueden interferir
+            exclude_tags=["script", "style", "noscript"],  # Excluir tags innecesarios
+            actions=actions  # Ejecutar acciones de scroll y wait
+        )
+        return doc
+
+    def get_images_from_website(self, url: str):
+        """
+        Trae las imágenes de un sitio web usando un prompt JSON.
+        Útil para extraer imágenes que pueden estar en srcset, noscript, o lazy-loaded.
+
+        Args:
+            url: URL del sitio web a scrapear
+        """
+        formats = ["markdown", "html", "links", "images"]
+
+        # Agregar formato JSON con prompt para extraer imágenes
+        images_prompt = {
+            "type": "json",
+            "prompt": "Extract all image URLs from this page. Return a JSON object with the following structure: {\"imagenes\": array of strings (list of all image URLs found on the page, including those in img src, img srcset, img data-src, img data-srcset, noscript img tags, background-image styles, and any other image sources). Include only direct URLs to image files (jpg, jpeg, png, gif, webp, svg, bmp, tiff). For srcset attributes, extract all URLs. Exclude placeholder images (data:image URLs). Return an empty array if no images are found."
+        }
+        formats.append(images_prompt)
+
+        # Configurar acciones para mejorar la carga de contenido lazy-load
+        # Hacer scroll hacia abajo para activar la carga de imágenes lazy-load
+        actions = [
+            {"type": "scroll", "direction": "down"},  # Scroll inicial
+            {"type": "wait", "milliseconds": 2000},  # Esperar 2 segundos después del scroll
+            {"type": "scroll", "direction": "down"},  # Scroll adicional
+            {"type": "wait", "milliseconds": 2000},  # Esperar otros 2 segundos
+        ]
+
+        # Opciones de scraping mejoradas
+        doc = self.firecrawl.scrape(
+            url=url,
+            formats=formats,
+            wait_for=3000,  # Esperar 3 segundos iniciales para que la página cargue
+            timeout=120000,  # Aumentar timeout a 120 segundos (2 minutos) para páginas lentas
+            only_main_content=True,  # Enfocarse solo en el contenido principal (elimina headers, footers, sidebars)
+            block_ads=True,  # Bloquear anuncios que pueden interferir
+            exclude_tags=["script", "style"],  # Excluir script y style, pero NO noscript (necesitamos esas imágenes)
+            actions=actions  # Ejecutar acciones de scroll y wait
+        )
         return doc
