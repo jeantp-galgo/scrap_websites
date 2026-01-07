@@ -59,7 +59,7 @@ class ScrapingUtils:
         Args:
             url: URL del sitio web a scrapear
         """
-        formats = ["markdown", "html", "links", "images"]
+        formats = ["markdown", "links", "images"]
 
         # Agregar formato JSON con prompt para extraer imágenes
         images_prompt = {
