@@ -765,10 +765,10 @@ Ejemplos de uso:
     # Determinar URLs a procesar
     # Lista predefinida de URLs (se usa si no se proporciona --url)
     urls_predefinidas = [
-    "https://www.honda.mx/motos/crf300f"
+    "https://www.morbidelli.com/ec-es/products/t250x"
     ]
 
-    args.brand = "Honda"
+    args.brand = "Italika"
 
     if args.url:
         # Si se proporciona una URL, procesar solo esa
