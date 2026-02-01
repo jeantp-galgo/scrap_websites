@@ -1,5 +1,5 @@
 from src.core.scraper.app import ScrapingUtils
-from src.core.scraper.images.utils import create_image_urls
+from src.core.scraper.images.brands.vento.handle import handle_vento
 
 def check_website(url):
     print("url", url)
@@ -13,13 +13,15 @@ class ImagesProcessor:
         self.scraper = ScrapingUtils()
 
     def get_images_from_website(self, url: str) -> list:
-        """ Obtiene las imágenes de un sitio web """
+        """
+        Obtiene las imágenes de un sitio web. Se maneja el caso específico de una marca.
+        Args:
+            url: str
+        Returns:
+            images: list[str]
+            image_urls: list[str]
+        """
         website = check_website(url)
         content = self.scraper.get_content_from_website(url, formats=["images"])
         if website == "vento":
-            for image in content.images:
-                if image.endswith("-01.jpg"):
-                    base_url = image.split("-01.jpg")[0]
-                    image_urls = create_image_urls(base_url)
-                    return content.images, image_urls
-        return content.images, []
+            return handle_vento(content.images)
