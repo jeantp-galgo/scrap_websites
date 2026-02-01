@@ -25,3 +25,4 @@ class ImagesProcessor:
         content = self.scraper.get_content_from_website(url, formats=["images"])
         if website == "vento":
             return handle_vento(content.images)
+        return content
