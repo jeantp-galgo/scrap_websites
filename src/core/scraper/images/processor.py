@@ -1,6 +1,7 @@
 from src.core.scraper.app import ScrapingUtils
 from src.core.scraper.images.brands.vento.handle import handle_vento
 from src.core.scraper.images.brands.italika.handle import handle_italika
+from src.core.scraper.images.brands.honda.handle import handle_honda
 
 def check_website(url):
     print("url", url)
@@ -8,6 +9,8 @@ def check_website(url):
         return "vento"
     if "italika.mx" in url:
         return "italika"
+    if "honda.mx" in url:
+        return "honda"
     else:
         return None
 
@@ -30,4 +33,6 @@ class ImagesProcessor:
             return handle_vento(content.images)
         if website == "italika":
             return handle_italika(content.images)
+        if website == "honda":
+            return handle_honda(content.images)
         return content
