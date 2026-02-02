@@ -1,0 +1,13 @@
+from src.core.scraper.brands.vento.images.executor import handle_images
+from src.core.scraper.brands.vento.technical_specs.executor import handle_technical_specs
+
+def handle_vento(handle_type:str, content: list[str]) -> list:
+    """
+    Maneja el caso específico de la marca Vento
+    """
+
+    if handle_type == "images":
+        return handle_images(content)
+
+    if handle_type == "technical_specs":
+        return handle_technical_specs(content)
