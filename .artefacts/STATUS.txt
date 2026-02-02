@@ -22,12 +22,12 @@ Contenido a extraer:
         * Cada marca puede requerir una lógica propia.
 
 Descargar fichas técnicas
-    * Estado: No Iniciado
+    * Estado: Iniciado
     * Falta:
+    * Listo:
         * Identificar como se presenta la ficha técnica (imágenes, pdf o tablas html)
-        * Aplicar una lógica para cada posible presentación
     * A tener en cuenta
-        * No se xd
+        * Aplicar una lógica para cada posible presentación
 
 Descargar información del modelo (nombre, año, colores, precios)
     * Estado: No Iniciado
