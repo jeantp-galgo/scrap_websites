@@ -1,0 +1,1 @@
+Los handle tienen que llevar la validación del formato a recibir
