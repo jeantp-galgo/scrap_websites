@@ -41,7 +41,7 @@ class ImagesProcessor:
             return handle_honda("images", content.images)
         return content
 
-    def get_technical_specs(self, url: str, formats: list | None = None, actions: list | None = None, wait_for: int | None = None) -> list:
+    def get_technical_specs(self, url: str) -> list:
         """
         Obtiene las fichas técnicas de un sitio web.
         Args:
@@ -55,6 +55,7 @@ class ImagesProcessor:
                 {"type": "click", "selector": "a.btn-specs"},  # click para desplegar la ficha
                 {"type": "wait", "milliseconds": 1200},        # espera a que cargue el contenido
             ]
+            wait_for = 1200
             content = self.scraper.get_content_from_website(
                 url,
                 formats=["html"],
