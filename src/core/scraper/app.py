@@ -1,5 +1,5 @@
-from firecrawl import Firecrawl
 import os
+from firecrawl import Firecrawl
 from src.core.scraper.utils import get_urls_from_firecrawl_map
 
 class ScrapingUtils:
