@@ -2,6 +2,7 @@ from src.core.scraper.app import ScrapingUtils
 from src.core.scraper.brands.vento.handle import handle_vento
 from src.core.scraper.brands.italika.handle import handle_italika
 from src.core.scraper.brands.honda.handle import handle_honda
+from src.core.scraper.brands.yamaha.handle import handle_yamaha
 
 def check_website(url):
     print("url", url)
@@ -14,6 +15,9 @@ def check_website(url):
     if "honda.mx" in url:
         print("website: honda")
         return "honda"
+    if "yamaha-motor" in url:
+        print("website: yamaha")
+        return "yamaha"
     else:
         print("website: none")
         return None
@@ -21,6 +25,10 @@ def check_website(url):
 class ImagesProcessor:
     def __init__(self):
         self.scraper = ScrapingUtils()
+
+    def test_extract(self, url: str, formats: list) -> list:
+        content = self.scraper.get_content_from_website(url, formats=formats)
+        return content
 
     def get_images_from_website(self, url: str) -> list:
         """
@@ -39,6 +47,10 @@ class ImagesProcessor:
             return handle_italika("images", content.images)
         if website == "honda":
             return handle_honda("images", content.images)
+        if website == "yamaha":
+            print(content)
+            return handle_yamaha(url, "images", content.images)
+            # return content
         return content
 
     def get_technical_specs(self, url: str) -> list:
@@ -71,4 +83,8 @@ class ImagesProcessor:
         if website == "italika":
             content = self.scraper.get_content_from_website(url, formats=["html"])
             return handle_italika("technical_specs", content)
+
+        if website == "yamaha":
+            content = self.scraper.get_content_from_website(url, formats=["html"])
+            return handle_yamaha(url, "technical_specs", content)
         return content
