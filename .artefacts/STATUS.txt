@@ -1,0 +1,48 @@
+--------------------------------------------------------
+|    |------------------|                                 |
+|    |Descargar imágenes|                                                   |
+|    |------------------|                                                    |
+|                                                       |
+|                                                       |
+|                                                       |
+|                                                       |
+|                                                       |
+|                                                       |
+|                                                       |
+|                                                       |
+|                                                       |
+|                                                       |
+---------------------------------------------------------
+Contenido a extraer:
+* Descargar imágenes
+    * Estado: Iniciado
+    * Falta:
+        * Agregar distintas marcas: CF Moto, CFLite, Bajaj, Yamaha, Suzuki, etc
+    * A tener en cuenta:
+        * Cada marca puede requerir una lógica propia.
+
+Descargar fichas técnicas
+    * Estado: No Iniciado
+    * Falta:
+        * Identificar como se presenta la ficha técnica (imágenes, pdf o tablas html)
+        * Aplicar una lógica para cada posible presentación
+    * A tener en cuenta
+        * No se xd
+
+Descargar información del modelo (nombre, año, colores, precios)
+    * Estado: No Iniciado
+    * Falta:
+        * Extraer marca, nombre de modelo, precio, año, colores
+    * A tener en cuenta:
+        * Consolidar la información en un CSV o JSON
+
+Otros usos
+* Tracking de precios:
+    * Descripción: Se busca saber que somos el precio mas bajo en internet y tener alertas de si los precios cambian. ¿Tendremos los precios correctos? ¿Somos mas caros?
+    * Cómo: Tener mapeado todos los campos necesarios por marcas principales
+    * Futuros: Crear alguna página para ver la información recolectada.
+
+* Tracking de nuevos modelos / años:
+    * Descripción: Estar actualizados con todos los modelos disponibles y los tengamos en el marketplace. Quizás hayan modelos que no tengamos subidos.
+    * Cómo: Tener todas las URLs mapeadas. Si existiera alguna nueva, posiblemente pueda ser nuevo modelo disponible.
+
