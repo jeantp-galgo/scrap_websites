@@ -3,6 +3,7 @@ from src.core.scraper.brands.vento.handle import handle_vento
 from src.core.scraper.brands.italika.handle import handle_italika
 from src.core.scraper.brands.honda.handle import handle_honda
 from src.core.scraper.brands.yamaha.handle import handle_yamaha
+from src.core.scraper.brands.ryder.handle import handle_ryder
 
 def check_website(url):
     print("url", url)
@@ -18,6 +19,9 @@ def check_website(url):
     if "yamaha-motor" in url:
         print("website: yamaha")
         return "yamaha"
+    if "rydermx.com" in url:
+        print("website: ryder")
+        return "ryder"
     else:
         print("website: none")
         return None
@@ -40,16 +44,21 @@ class ImagesProcessor:
             image_urls: list[str]
         """
         website = check_website(url)
-        content = self.scraper.get_content_from_website(url, formats=["images"])
         if website == "vento":
+            content = self.scraper.get_content_from_website(url, formats=["images"])
             return handle_vento("images", content.images)
         if website == "italika":
+            content = self.scraper.get_content_from_website(url, formats=["images"])
             return handle_italika("images", content.images)
         if website == "honda":
+            content = self.scraper.get_content_from_website(url, formats=["images"])
             return handle_honda("images", content.images)
         if website == "yamaha":
-            print(content)
+            content = self.scraper.get_content_from_website(url, formats=["images"])
             return handle_yamaha(url, "images", content.images)
+        if website == "ryder":
+            content = self.scraper.get_content_from_website(url, formats=["html", "images"])
+            return handle_ryder("images", content)
             # return content
         return content
 
@@ -86,4 +95,7 @@ class ImagesProcessor:
         if website == "yamaha":
             content = self.scraper.get_content_from_website(url, formats=["html"])
             return handle_yamaha(url, "technical_specs", content)
+        if website == "ryder":
+            content = self.scraper.get_content_from_website(url, formats=["html"])
+            return handle_ryder("technical_specs", content)
         return content
