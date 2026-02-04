@@ -36,6 +36,9 @@ Descargar información del modelo (nombre, año, colores, precios)
     * A tener en cuenta:
         * Consolidar la información en un CSV o JSON
 
+Futuro:
+* Refactorizar para una mejor estructura de código. Actualmente está funcional.
+
 Otros usos
 * Tracking de precios:
     * Descripción: Se busca saber que somos el precio mas bajo en internet y tener alertas de si los precios cambian. ¿Tendremos los precios correctos? ¿Somos mas caros?
