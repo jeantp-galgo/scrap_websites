@@ -1,3 +1,5 @@
+# No parece usarse
+
 from typing import Any
 import re
 
