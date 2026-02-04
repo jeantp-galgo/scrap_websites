@@ -67,12 +67,11 @@ class ImagesProcessor:
                 {"type": "click", "selector": "a.btn-specs"},  # click para desplegar la ficha
                 {"type": "wait", "milliseconds": 1200},        # espera a que cargue el contenido
             ]
-            wait_for = 1200
             content = self.scraper.get_content_from_website(
                 url,
                 formats=["html"],
                 actions=actions,
-                wait_for=wait_for,
+                wait_for=1200,
             )
             return handle_honda("technical_specs", content)
 
