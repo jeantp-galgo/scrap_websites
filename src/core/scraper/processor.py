@@ -1,3 +1,9 @@
+import json
+import re
+from typing import Optional, List, Any
+
+from pydantic import BaseModel, Field
+
 from src.core.scraper.app import ScrapingUtils
 from src.core.scraper.brands.vento.handle import handle_vento
 from src.core.scraper.brands.italika.handle import handle_italika
@@ -34,6 +40,81 @@ class ImagesProcessor:
         content = self.scraper.get_content_from_website(url, formats=formats)
         return content
 
+    class ModelData(BaseModel):
+        base_price: Optional[float] = Field(default=None)
+        net_price: Optional[float] = Field(default=None)
+        discount_amount: Optional[float] = Field(default=None)
+        model: Optional[str] = Field(default=None)
+        colors: Optional[List[str]] = Field(default=None)
+
+    def _coerce_model_payload(self, payload: dict) -> dict:
+        # Normaliza números y colors para que el schema sea más robusto
+        normalized = dict(payload)
+        for field in ["base_price", "net_price", "discount_amount"]:
+            value = normalized.get(field)
+            if isinstance(value, str):
+                value = re.sub(r"[^\d]", "", value)
+                normalized[field] = int(value) if value else None
+        if isinstance(normalized.get("colors"), str):
+            normalized["colors"] = [c.strip() for c in normalized["colors"].split(",") if c.strip()]
+        return normalized
+
+    def _parse_model_payload(self, raw_data: Any) -> "ImagesProcessor.ModelData":
+        # Acepta dict o JSON string producido por el prompt
+        if isinstance(raw_data, str):
+            raw_data = json.loads(raw_data)
+        payload = self._coerce_model_payload(raw_data or {})
+        try:
+            return self.ModelData.model_validate(payload)
+        except AttributeError:
+            # Compatibilidad con Pydantic v1
+            return self.ModelData.parse_obj(payload)
+
+    def get_model_data(self, url: str) -> "ImagesProcessor.ModelData | None":
+        default_prompt = """
+Extract product pricing information and available colors from this page.
+Return ONLY a valid JSON object with this exact structure:
+{
+  "base_price": number or null,
+  "net_price": number or null,
+  "discount_amount": number or null,
+  "model": string or null,
+  "colors": array of strings or null
+}
+
+Rules:
+- If a value is not found, return null for that field.
+- net_price is base_price - discount_amount. If not discount_amount, net_price is base_price
+- Prices must be numbers without currency symbols, commas, or dots as thousand separators.
+- Colors must be an array of color names (e.g., ["Rojo", "Negro"]).
+- Do not include any text outside the JSON object.
+        """
+        actions = [
+            {"type": "scroll", "direction": "down"},  # Scroll inicial
+            {"type": "wait", "milliseconds": 2000},  # Esperar 2 segundos después del scroll
+        ]
+
+        content = self.scraper.get_content_from_website(
+            url,
+            formats=[{
+                "type": "json",
+                "prompt": default_prompt
+            }],
+            actions=actions,
+            wait_for=1200,
+        )
+        # TODO: Acá se debe llamar al LLM con default_prompt y luego parsear el JSON
+
+
+        # return content
+        if content is None:
+            return None
+        raw_payload = getattr(content, "json", None)
+        if raw_payload is None:
+            return None
+        return self._parse_model_payload(raw_payload)
+
+    # TODO: Identificar qué característica está disponible para cada marca, es decir, extraer imágenes, ficha técnica o modeldata, o todos.
     def get_images_from_website(self, url: str) -> list:
         """
         Obtiene las imágenes de un sitio web. Se maneja el caso específico de una marca.
@@ -95,6 +176,7 @@ class ImagesProcessor:
         if website == "yamaha":
             content = self.scraper.get_content_from_website(url, formats=["html"])
             return handle_yamaha(url, "technical_specs", content)
+
         if website == "ryder":
             content = self.scraper.get_content_from_website(url, formats=["html"])
             return handle_ryder("technical_specs", content)
