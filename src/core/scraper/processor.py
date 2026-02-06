@@ -10,6 +10,8 @@ from src.core.scraper.brands.italika.handle import handle_italika
 from src.core.scraper.brands.honda.handle import handle_honda
 from src.core.scraper.brands.yamaha.handle import handle_yamaha
 from src.core.scraper.brands.ryder.handle import handle_ryder
+from src.core.scraper.brands.zmoto.handle import handle_zmoto
+from src.core.scraper.brands.tvs.handle import handle_tvs
 
 def check_website(url):
     print("url", url)
@@ -25,9 +27,15 @@ def check_website(url):
     if "yamaha-motor" in url:
         print("website: yamaha")
         return "yamaha"
-    if "rydermx.com" in url:
+    if "rydermx.com" in url :
         print("website: ryder")
         return "ryder"
+    if "zmoto.com.mx" in url:
+        print("website: zmoto")
+        return "zmoto"
+    if "tvsmotor.com" in url:
+        print("website: tvsmotor")
+        return "tvs"
     else:
         print("website: none")
         return None
@@ -140,7 +148,13 @@ Rules:
         if website == "ryder":
             content = self.scraper.get_content_from_website(url, formats=["html", "images"])
             return handle_ryder("images", content)
+        if website == "zmoto":
+            content = self.scraper.get_content_from_website(url, formats=["html"])
+            return handle_zmoto("images", content)
             # return content
+        if website == "tvsmotor":
+            content = self.scraper.get_content_from_website(url, formats=["html"])
+            return handle_tvs("images", content)
         return content
 
     def get_technical_specs(self, url: str) -> list:
@@ -180,4 +194,14 @@ Rules:
         if website == "ryder":
             content = self.scraper.get_content_from_website(url, formats=["html"])
             return handle_ryder("technical_specs", content)
+
+        if website == "zmoto":
+            content = self.scraper.get_content_from_website(url, formats=["html"])
+            return handle_zmoto("technical_specs", content)
+
+        if website == "tvs":
+            content = self.scraper.get_content_from_website(url,
+            formats=["html"],
+            wait_for=5000)
+            return handle_tvs("technical_specs", content)
         return content
