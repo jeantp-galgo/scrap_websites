@@ -38,7 +38,6 @@ def handle_main_colors_images(content:list[str]) -> list:
 
     colors_value_list = extract_all_input_values(html_input_with_colors_value)
     dict_colors_and_values = extract_all_colors_name_available_with_values(model_name, html_span_with_colors_name, colors_value_list)
-
     for color_dict in dict_colors_and_values:
         main_images_list.append(f"https://www.rydermx.com/web/image/product.product/{color_dict['value']}/image_1024/{model_name}%20%28{color_dict['color']}%29?unique=b3a6ac0")
     return main_images_list
