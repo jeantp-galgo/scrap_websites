@@ -6,6 +6,7 @@ Uso:
 
 Ejemplo:
     python scripts/create_new_brand.py suzuki
+    python scripts/create_new_brand.py auteco_victory
 """
 
 import os
@@ -86,13 +87,20 @@ def main():
     if len(sys.argv) != 2:
         print("Uso: python scripts/create_new_brand.py <nombre_marca>")
         print("Ejemplo: python scripts/create_new_brand.py suzuki")
+        print("Ejemplo: python scripts/create_new_brand.py auteco_victory")
         sys.exit(1)
 
     brand_name = sys.argv[1].lower().strip()
 
-    # Validación básica del nombre
-    if not brand_name.isalnum() or not brand_name[0].isalpha():
-        print("Error: El nombre de la marca debe ser alfanumérico y empezar con una letra.")
+    # Validación básica del nombre: permite letras, números y guiones bajos
+    # Debe empezar con una letra
+    if not brand_name[0].isalpha():
+        print("Error: El nombre de la marca debe empezar con una letra.")
+        sys.exit(1)
+
+    # Validar que solo contenga caracteres alfanuméricos y guiones bajos
+    if not all(c.isalnum() or c == '_' for c in brand_name):
+        print("Error: El nombre de la marca solo puede contener letras, números y guiones bajos (_).")
         sys.exit(1)
 
     create_brand_structure(brand_name)
