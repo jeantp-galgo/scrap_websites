@@ -9,7 +9,7 @@ class ScrapingUtils:
 
     def get_content_from_website(self, url: str, formats: list | None = None, **scrape_kwargs):
         """ Trae contenido de la web según el formato dado """
-        wait_for = scrape_kwargs.pop("wait_for", 300)
+        wait_for = scrape_kwargs.pop("wait_for", 1200)
         doc = self.firecrawl.scrape(
             url=url,
             formats=formats,
