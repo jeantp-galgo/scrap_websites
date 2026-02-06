@@ -12,8 +12,9 @@ from src.core.scraper.brands.yamaha.handle import handle_yamaha
 from src.core.scraper.brands.ryder.handle import handle_ryder
 from src.core.scraper.brands.zmoto.handle import handle_zmoto
 from src.core.scraper.brands.tvs.handle import handle_tvs
+from src.core.scraper.brands.auteco_tvs.handle import handle_auteco_tvs
 
-def check_website(url):
+def check_website(url, **kwargs):
     print("url", url)
     if "vento.com" in url:
         print("website: vento")
@@ -36,6 +37,17 @@ def check_website(url):
     if "tvsmotor.com" in url:
         print("website: tvsmotor")
         return "tvs"
+    if "auteco.com.co" in url:
+        sitio = kwargs.get("sitio")
+        if sitio == "victory":
+            print("website: auteco victory")
+            return "auteco_victory"
+        if sitio == "tvs":
+            print("website: auteco tvs")
+            return "auteco_tvs"
+        if sitio == "ceronte":
+            print("website: auteco ceronte")
+            return "auteco_ceronte"
     else:
         print("website: none")
         return None
@@ -45,7 +57,7 @@ class ImagesProcessor:
         self.scraper = ScrapingUtils()
 
     def test_extract(self, url: str, formats: list) -> list:
-        content = self.scraper.get_content_from_website(url, formats=formats)
+        content = self.scraper.get_content_from_website(url, formats=formats, wait_for=5000)
         return content
 
     class ModelData(BaseModel):
@@ -123,7 +135,7 @@ Rules:
         return self._parse_model_payload(raw_payload)
 
     # TODO: Identificar qué característica está disponible para cada marca, es decir, extraer imágenes, ficha técnica o modeldata, o todos.
-    def get_images_from_website(self, url: str) -> list:
+    def get_images_from_website(self, url: str, **kwargs) -> list:
         """
         Obtiene las imágenes de un sitio web. Se maneja el caso específico de una marca.
         Args:
@@ -132,7 +144,8 @@ Rules:
             images: list[str]
             image_urls: list[str]
         """
-        website = check_website(url)
+        website = check_website(url, sitio=kwargs.get("sitio"))
+
         if website == "vento":
             content = self.scraper.get_content_from_website(url, formats=["images"])
             return handle_vento("images", content.images)
@@ -155,6 +168,15 @@ Rules:
         if website == "tvsmotor":
             content = self.scraper.get_content_from_website(url, formats=["html"])
             return handle_tvs("images", content)
+
+        if website == "auteco_tvs":
+            content = self.scraper.get_content_from_website(url,
+                formats=["images"],
+                wait_for=5000)
+            return handle_auteco_tvs("images", content)
+        if website == None:
+            print("No se encontró sitio, se cancela")
+            return None
         return content
 
     def get_technical_specs(self, url: str) -> list:
