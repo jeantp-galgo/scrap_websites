@@ -14,14 +14,15 @@
 |                                                       |
 ---------------------------------------------------------
 Contenido a extraer:
-* Descargar imágenes
+* Screapear imágenes
     * Estado: Iniciado
     * Falta:
         * Agregar distintas marcas: CF Moto, CFLite, Bajaj, Yamaha, Suzuki, etc
+        * Descargar imágenes (código listo pero no incluído)
     * A tener en cuenta:
         * Cada marca puede requerir una lógica propia.
 
-Descargar fichas técnicas
+Scrapear fichas técnicas
     * Estado: Iniciado
     * Falta:
     * Listo:
@@ -30,8 +31,10 @@ Descargar fichas técnicas
         * Aplicar una lógica para cada posible presentación
 
 Descargar información del modelo (nombre, año, colores, precios)
-    * Estado: No Iniciado
+    * Estado: Iniciado
     * Falta:
+        * Mejorar output
+    * Realizado:
         * Extraer marca, nombre de modelo, precio, año, colores
     * A tener en cuenta:
         * Consolidar la información en un CSV o JSON
