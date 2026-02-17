@@ -8,6 +8,7 @@ from src.core.scraper.brands.ryder.handle import handle_ryder
 from src.core.scraper.brands.zmoto.handle import handle_zmoto
 from src.core.scraper.brands.tvs.handle import handle_tvs
 from src.core.scraper.brands.auteco_tvs.handle import handle_auteco_tvs
+from src.core.scraper.brands.akt.handle import handle_akt
 
 def check_website(url, **kwargs):
     print("url", url)
@@ -32,6 +33,9 @@ def check_website(url, **kwargs):
     if "tvsmotor.com" in url:
         print("website: tvsmotor")
         return "tvs"
+    if "aktmotos.com" in url:
+        print("website: aktmotos")
+        return "aktmotos"
     if "auteco.com.co" in url:
         sitio = kwargs.get("sitio")
         if sitio == "victory":
@@ -94,7 +98,9 @@ class ImagesProcessor:
         if website == "tvsmotor":
             content = self.scraper.get_content_from_website(url, formats=["html"])
             return handle_tvs("images", content)
-
+        if website == "aktmotos":
+            content = self.scraper.get_content_from_website(url, formats=["html"])
+            return handle_akt("images", content)
         if website == "auteco_tvs":
             content = self.scraper.get_content_from_website(url, formats=["images"], wait_for=5000)
             return handle_auteco_tvs("images", content)

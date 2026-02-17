@@ -1,5 +1,5 @@
 from src.core.scraper.brands.akt.images.executor import handle_images
-from src.core.scraper.brands.akt.technical_specs.executor import handle_technical_specs
+# from src.core.scraper.brands.akt.technical_specs.executor import handle_technical_specs
 
 
 def handle_akt(handle_type:str, content: list[str]) -> list:
@@ -13,4 +13,4 @@ def handle_akt(handle_type:str, content: list[str]) -> list:
 
     if handle_type == "technical_specs":
         print("Tipo de contenido: Technical Specs")
-        return handle_technical_specs(content)
+        # return handle_technical_specs(content)
