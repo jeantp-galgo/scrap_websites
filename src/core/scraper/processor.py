@@ -9,8 +9,9 @@ from src.core.scraper.brands.zmoto.handle import handle_zmoto
 from src.core.scraper.brands.tvs.handle import handle_tvs
 from src.core.scraper.brands.auteco_tvs.handle import handle_auteco_tvs
 from src.core.scraper.brands.akt.handle import handle_akt
+from src.core.scraper.brands.auteco_victory.handle import handle_auteco_victory
 
-def check_website(url, **kwargs):
+def check_website(url):
     print("url", url)
     if "vento.com" in url:
         print("website: vento")
@@ -37,16 +38,12 @@ def check_website(url, **kwargs):
         print("website: aktmotos")
         return "aktmotos"
     if "auteco.com.co" in url:
-        sitio = kwargs.get("sitio")
-        if sitio == "victory":
-            print("website: auteco victory")
-            return "auteco_victory"
-        if sitio == "tvs":
+        if "tvs" in url:
             print("website: auteco tvs")
             return "auteco_tvs"
-        if sitio == "ceronte":
-            print("website: auteco ceronte")
-            return "auteco_ceronte"
+        if "victory" in url or "kawasaki" in url:
+            print("website: auteco victory o kawasaki")
+            return "auteco_victory"
     else:
         print("website: none")
         return None
@@ -56,8 +53,8 @@ class ImagesProcessor:
         self.scraper = ScrapingUtils()
         self.generic_extractor = GenericExtractor()
 
-    def test_extract(self, url: str, formats: list) -> list:
-        content = self.scraper.get_content_from_website(url, formats=formats, wait_for=5000)
+    def test_extract(self, url: str, formats: list, actions: list = None, wait_for: int = 5000) -> list:
+        content = self.scraper.get_content_from_website(url, formats=formats, actions=actions, wait_for=wait_for)
         return content
 
     def get_model_data(self, url: str):
@@ -74,7 +71,7 @@ class ImagesProcessor:
             images: list[str]
             image_urls: list[str]
         """
-        website = check_website(url, sitio=kwargs.get("sitio"))
+        website = check_website(url)
 
         if website == "vento":
             content = self.scraper.get_content_from_website(url, formats=["images"])
@@ -104,6 +101,9 @@ class ImagesProcessor:
         if website == "auteco_tvs":
             content = self.scraper.get_content_from_website(url, formats=["images"], wait_for=5000)
             return handle_auteco_tvs("images", content)
+        if website == "auteco_victory":
+            content = self.scraper.get_content_from_website(url, formats=["images"], wait_for=5000)
+            return handle_auteco_victory("images", content.images)
         if website == None:
             print("No se encontró sitio, se usa el formato de imágenes por defecto")
             content = self.scraper.get_content_from_website(url, formats=["images"], wait_for=5000)
@@ -157,6 +157,28 @@ class ImagesProcessor:
             formats=["html"],
             wait_for=5000)
             return handle_tvs("technical_specs", content)
+        if website == "auteco_tvs":
+            actions = [
+                {
+                    "type": "click",
+                    "selector": "button.vtex-disclosure-layout-1-x-trigger"
+                },  # click en el button que activa la ficha técnica
+                {"type": "wait", "milliseconds": 1200},        # espera a que cargue el contenido
+            ]
+            content = self.scraper.get_content_from_website(
+                url,
+                formats=["html"],
+                actions=actions,
+                wait_for=1200,
+            )
+            return handle_auteco_tvs("technical_specs", content)
+        if website == "auteco_victory":
+            content = self.scraper.get_content_from_website(
+                url,
+                formats=["html"],
+                wait_for=1200,
+            )
+            technical_specs_data = handle_auteco_victory("technical_specs", content)
         if website == None:
             print("No se encontró sitio, se usa el formato genérico de ficha técnica")
             technical_specs_data = self.generic_extractor.get_technical_specs_data(url)
