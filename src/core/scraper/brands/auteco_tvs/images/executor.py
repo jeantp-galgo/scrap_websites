@@ -106,27 +106,94 @@ def get_images_from_url_pattern(urls_list: list[str]):
     return url_list_checked
 
 
-def handle_images(content: list[str]):
+def extract_canva_images(og_image_url: str, iterations: int = 6) -> list[str]:
+    """
+    Extrae imágenes de Canva iterando el número en la URL de og_image.
+
+    Args:
+        og_image_url: URL de og_image, ej: https://auteco.vtexassets.com/arquivos/ids/1506638/...
+        iterations: Número de iteraciones (default: 6)
+
+    Returns:
+        Lista de URLs de imágenes que existen
+    """
+    import requests
+
+    # Extraer el número de la URL
+    # Ejemplo: https://auteco.vtexassets.com/arquivos/ids/1506638/... -> 1506638
+    parts = og_image_url.split("/")
+    ids_index = -1
+    for i, part in enumerate(parts):
+        if part == "ids":
+            ids_index = i
+            break
+
+    if ids_index == -1 or ids_index + 1 >= len(parts):
+        print(f"Error: No se encontró número después de 'ids' en {og_image_url}")
+        return []
+
+    try:
+        base_number = int(parts[ids_index + 1])
+    except ValueError:
+        print(f"Error: No se pudo convertir a número: {parts[ids_index + 1]}")
+        return []
+
+    # Construir URL base
+    url_base = f"https://auteco.vtexassets.com/arquivos/ids/"
+
+    # Iterar y construir URLs
+    # Las URLs de VTEX suelen funcionar directamente con el número
+    canva_urls = []
+    for i in range(iterations):
+        number = base_number + i
+        url = f"{url_base}{number}/"
+        canva_urls.append(url)
+
+    # Validar que las URLs existan
+    valid_urls = []
+    for url in canva_urls:
+        try:
+            response = requests.head(url, timeout=5, allow_redirects=True)
+            if response.status_code == 200:
+                valid_urls.append(url)
+        except Exception as e:
+            print(f"Error validando URL {url}: {e}")
+
+    return valid_urls
+
+
+def handle_images(content_data):
     """
     Maneja la extracción de imágenes de galería.
-    Detecta automáticamente la marca en las URLs y prueba todos los patrones posibles:
-    - Galeria-imagen-{i} (patrón estándar)
-    - Galeria_imagen_{i}_{marca} (con marca, si se detecta)
-    - galeria-imagen-nuevo{i} (patrón "nuevo")
-    Solo retorna las URLs que realmente existen (validadas con requests).
+    Procesa imágenes tradicionales (si existen) y imágenes de Canva (si og_image está presente).
     """
-    # Detectar el patrón de URL y si hay marca
-    url_base, marca = detect_url_pattern(content.images)
-    print(f"URL base: {url_base}")
-    print(f"Marca detectada: {marca}")
+    all_image_urls = []
 
-    # Crear las URLs con ambos patrones si hay marca, o solo con guiones si no hay marca
-    urls_list = create_urls_from_pattern(url_base, marca)
-    print(f"URLs list (con ambos patrones si aplica): {urls_list}")
+    # Extraer content y og_image de la estructura recibida
+    content = content_data.get("content")
+    og_image = content_data.get("og_image")
 
-    # Verificar las URLs y agregar solo las que existen
-    # Esta función descartará automáticamente las que no existen
-    urls_list_checked = get_images_from_url_pattern(urls_list)
-    print(f"URLs list checked (solo las que existen): {urls_list_checked}")
+    # 1. Procesar imágenes tradicionales (como siempre)
+    if content and content.images:
+        try:
+            url_base, marca = detect_url_pattern(content.images)
+            print(f"URL base tradicional: {url_base}")
+            print(f"Marca detectada: {marca}")
 
-    return urls_list_checked
+            urls_list = create_urls_from_pattern(url_base, marca)
+            urls_list_checked = get_images_from_url_pattern(urls_list)
+            all_image_urls.extend(urls_list_checked)
+        except Exception as e:
+            print(f"Error procesando imágenes tradicionales: {e}")
+
+    # 2. Procesar imágenes de Canva (si og_image existe)
+    if og_image:
+        try:
+            print(f"Procesando imágenes de Canva desde og_image: {og_image}")
+            canva_urls = extract_canva_images(og_image)
+            print(f"Imágenes de Canva encontradas: {len(canva_urls)}")
+            all_image_urls.extend(canva_urls)
+        except Exception as e:
+            print(f"Error procesando imágenes de Canva: {e}")
+
+    return all_image_urls
