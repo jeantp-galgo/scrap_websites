@@ -158,18 +158,27 @@ class ImagesProcessor:
             wait_for=5000)
             return handle_tvs("technical_specs", content)
         if website == "auteco_tvs":
+            selector = ".vtex-flex-layout-0-x-flexRowContent--disclosure-pdp-tvs-fr > div:first-child > button.vtex-disclosure-layout-1-x-trigger--trigger-d-pdp-tvs"
+            # Múltiples scrolls y esperas para cargar contenido dinámico antes del click
             actions = [
+                {"type": "wait", "milliseconds": 3000},  # Espera inicial para que cargue la página
+                {"type": "scroll", "direction": "down"},  # Primer scroll
+                {"type": "wait", "milliseconds": 2000},  # Espera después del primer scroll
+                {"type": "scroll", "direction": "down"},  # Segundo scroll para cargar más contenido
+                {"type": "wait", "milliseconds": 2000},  # Espera después del segundo scroll
+                {"type": "scroll", "direction": "down"},  # Tercer scroll para asegurar que el botón esté visible
+                {"type": "wait", "milliseconds": 3000},  # Espera adicional para que el elemento sea clickeable
                 {
                     "type": "click",
-                    "selector": "button.vtex-disclosure-layout-1-x-trigger"
-                },  # click en el button que activa la ficha técnica
-                {"type": "wait", "milliseconds": 1200},        # espera a que cargue el contenido
+                    "selector": selector
+                },  # click en el button dentro del primer div del contenedor (FICHA TÉCNICA es siempre el primero)
+                {"type": "wait", "milliseconds": 5000},  # Espera a que cargue el contenido expandido
             ]
             content = self.scraper.get_content_from_website(
                 url,
                 formats=["html"],
                 actions=actions,
-                wait_for=1200,
+                wait_for=5000,  # Tiempo suficiente para que cargue la página inicial
             )
             return handle_auteco_tvs("technical_specs", content)
         if website == "auteco_victory":
