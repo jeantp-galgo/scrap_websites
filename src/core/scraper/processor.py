@@ -100,7 +100,13 @@ class ImagesProcessor:
             return handle_akt("images", content)
         if website == "auteco_tvs":
             content = self.scraper.get_content_from_website(url, formats=["images"], wait_for=5000)
-            return handle_auteco_tvs("images", content)
+            url_meta_data = content.metadata.og_image
+
+            content_to_send = {
+                "content": content,
+                "og_image": url_meta_data
+            }
+            return handle_auteco_tvs("images", content_to_send)
         if website == "auteco_victory":
             content = self.scraper.get_content_from_website(url, formats=["images"], wait_for=5000)
             return handle_auteco_victory("images", content.images)
