@@ -49,8 +49,13 @@ def detect_url_pattern(content: list[str]):
 
 def create_urls_from_pattern(url_base: str, marca: str = None):
     """
-    Crea las URLs con ambos patrones posibles si hay marca detectada.
-    Si hay marca, crea URLs con y sin marca para que la validación determine cuál es correcta.
+    Crea las URLs con todos los patrones posibles.
+    Genera URLs con diferentes patrones y la validación determinará cuáles realmente existen.
+
+    Patrones soportados:
+    1. Galeria-imagen-{i} (patrón estándar con números)
+    2. Galeria_imagen_{i}_{marca} (con marca y guiones bajos)
+    3. galeria-imagen-nuevo{i} (patrón "nuevo" con número)
     """
     urls_list = []
 
@@ -67,6 +72,10 @@ def create_urls_from_pattern(url_base: str, marca: str = None):
         # Si no hay marca, solo crear patrón con guiones
         for i in range(0, 7):
             urls_list.append(f"{url_base}Galeria-imagen-{i+1}")
+
+    # Patrón 3: galeria-imagen-nuevo{i} - siempre intentar este patrón
+    for i in range(1, 8):  # nuevo1, nuevo2, ..., nuevo7
+        urls_list.append(f"{url_base}galeria-imagen-nuevo{i}")
 
     return urls_list
 
@@ -100,7 +109,10 @@ def get_images_from_url_pattern(urls_list: list[str]):
 def handle_images(content: list[str]):
     """
     Maneja la extracción de imágenes de galería.
-    Detecta automáticamente la marca en las URLs y prueba ambos patrones.
+    Detecta automáticamente la marca en las URLs y prueba todos los patrones posibles:
+    - Galeria-imagen-{i} (patrón estándar)
+    - Galeria_imagen_{i}_{marca} (con marca, si se detecta)
+    - galeria-imagen-nuevo{i} (patrón "nuevo")
     Solo retorna las URLs que realmente existen (validadas con requests).
     """
     # Detectar el patrón de URL y si hay marca
