@@ -163,6 +163,7 @@ class ImagesProcessor:
             formats=["html"],
             wait_for=5000)
             return handle_tvs("technical_specs", content)
+
         if website == "auteco_tvs":
             selector = ".vtex-flex-layout-0-x-flexRowContent--disclosure-pdp-tvs-fr > div:first-child > button.vtex-disclosure-layout-1-x-trigger--trigger-d-pdp-tvs"
             # Múltiples scrolls y esperas para cargar contenido dinámico antes del click
@@ -187,18 +188,39 @@ class ImagesProcessor:
                 wait_for=5000,  # Tiempo suficiente para que cargue la página inicial
             )
             return handle_auteco_tvs("technical_specs", content)
+
         if website == "auteco_victory":
-            content = self.scraper.get_content_from_website(
-                url,
-                formats=["html"],
-                wait_for=1200,
-            )
-            technical_specs_data = handle_auteco_victory("technical_specs", content)
+            print("Ejecutando auteco victory")
+            # actions = [
+            #     {"type": "scroll", "direction": "down"},
+            #     {"type": "wait", "milliseconds": 2000},
+            #     {"type": "scroll", "direction": "down"},
+            #     {"type": "wait", "milliseconds": 2000},
+            #     {"type": "scroll", "direction": "down"},
+            #     {"type": "wait", "milliseconds": 2000},
+            #     {"type": "scroll", "direction": "down"},
+            # ]
+            # content = self.scraper.get_content_from_website(
+            #     url,
+            #     formats=["html"],
+            #     wait_for=1200,
+            #     actions=actions,
+            # )
+            # technical_specs_data = handle_auteco_victory("technical_specs", content)
+
+            return self.generic_technical_specs(url)
+
         if website == None:
             print("No se encontró sitio, se usa el formato genérico de ficha técnica")
-            technical_specs_data = self.generic_extractor.get_technical_specs_data(url)
-            print("technical_specs_data", technical_specs_data)
-            if technical_specs_data is None:
-                return None
-            # Convertir el modelo Pydantic a dict para mantener compatibilidad
-            return technical_specs_data.model_dump(exclude_none=False)
+            return self.generic_technical_specs(url)
+
+    def generic_technical_specs(self, url: str) -> list:
+        """
+        Obtiene las fichas técnicas de un sitio web usando el extractor genérico.
+        Args:
+            url: str
+        Returns:
+            technical_specs: list[str]
+        """
+        technical_specs_data = self.generic_extractor.get_technical_specs_data(url)
+        return technical_specs_data.model_dump(exclude_none=False)
