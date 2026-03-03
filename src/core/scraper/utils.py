@@ -1,5 +1,8 @@
 # No parece usarse
-
+import os
+from pathlib import Path
+import requests
+from urllib.parse import urlparse
 from typing import Any
 import re
 
@@ -56,3 +59,32 @@ def extract_image_urls_from_html(html: str) -> list:
         add_url(candidate)
 
     return urls
+
+def download_images(urls, base_name, output_dir="downloads", timeout=30):
+    """Descarga imágenes desde una lista de URLs y las guarda numeradas."""
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    results = []
+    for idx, url in enumerate(urls, start=1):
+        try:
+            response = requests.get(url, timeout=timeout)
+            response.raise_for_status()
+
+            parsed = urlparse(url)
+            ext = os.path.splitext(parsed.path)[1].lower()
+            # Si no hay extensión o viene rara, usar .jpg por defecto
+            if not ext or ext not in {".jpg", ".jpeg", ".png", ".webp"}:
+                ext = ".jpg"
+            filename = f"{base_name}_{idx}{ext}"
+            file_path = output_path / filename
+
+            with open(file_path, "wb") as file:
+                file.write(response.content)
+
+            results.append({"url": url, "file": str(file_path), "ok": True})
+        except Exception as exc:
+            # Registrar error sin detener todo el proceso
+            results.append({"url": url, "error": str(exc), "ok": False})
+
+    return results
