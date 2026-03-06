@@ -1,3 +1,4 @@
+import time
 from src.core.scraper.app import ScrapingUtils
 from src.core.scraper.models import (
     ModelData,
@@ -25,7 +26,7 @@ Return ONLY a valid JSON object with this exact structure:
   "net_price": number or null,
   "discount_amount": number or null,
   "model": string or null,
-  "colors": array of strings or null
+  "colors": array of strings or null,
 }
 
 Rules:
@@ -36,26 +37,35 @@ Rules:
 - Do not include any text outside the JSON object.
         """
         actions = [
-            {"type": "scroll", "direction": "down"},  # Scroll inicial
-            {"type": "wait", "milliseconds": 2000},  # Esperar 2 segundos después del scroll
+            {"type": "scroll", "direction": "down"},
+            {"type": "wait", "milliseconds": 2000},
         ]
 
-        content = self.scraper.get_content_from_website(
-            url,
-            formats=[{
-                "type": "json",
-                "prompt": default_prompt
-            }],
-            actions=actions,
-            wait_for=1200,
-        )
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            content = self.scraper.get_content_from_website(
+                url,
+                formats=[{
+                    "type": "json",
+                    "prompt": default_prompt
+                }],
+                actions=actions,
+                wait_for=5000,
+            )
 
-        if content is None:
-            return None
-        raw_payload = getattr(content, "json", None)
-        if raw_payload is None:
-            return None
-        return parse_model_payload(raw_payload)
+            if content is None:
+                print(f"[get_model_data] intento {attempt}/{max_retries}: content es None — {url}")
+            else:
+                raw_payload = getattr(content, "json", None)
+                if raw_payload is not None:
+                    return parse_model_payload(raw_payload), content
+                else:
+                    print(f"[get_model_data] intento {attempt}/{max_retries}: content.json es None — {url}")
+
+            if attempt < max_retries:
+                time.sleep(attempt * 3)  # 3s, 6s entre reintentos
+
+        return None, None
 
     def get_technical_specs_data(self, url: str) -> TechnicalSpecsData | None:
         """
@@ -107,24 +117,32 @@ Look for variations in naming and units across different languages.
             {"type": "wait", "milliseconds": 2000},
         ]
 
-        content = self.scraper.get_content_from_website(
-            url,
-            formats=[{
-                "type": "json",
-                "schema": schema,
-                "prompt": extraction_prompt
-            }],
-            actions=actions,
-            wait_for=5000,
-        )
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            content = self.scraper.get_content_from_website(
+                url,
+                formats=[{
+                    "type": "json",
+                    "schema": schema,
+                    "prompt": extraction_prompt
+                }],
+                actions=actions,
+                wait_for=5000,
+            )
 
-        if content is None:
-            return None
-        raw_payload = getattr(content, "json", None)
-        if raw_payload is None:
-            return None
+            if content is None:
+                print(f"[get_technical_specs_data] intento {attempt}/{max_retries}: content es None — {url}")
+            else:
+                raw_payload = getattr(content, "json", None)
+                if raw_payload is not None:
+                    try:
+                        return parse_technical_specs_payload(raw_payload)
+                    except Exception as e:
+                        print(f"[get_technical_specs_data] intento {attempt}/{max_retries}: parse falló — {e}")
+                else:
+                    print(f"[get_technical_specs_data] intento {attempt}/{max_retries}: content.json es None — {url}")
 
-        try:
-            return parse_technical_specs_payload(raw_payload)
-        except Exception as e:
-            return None
+            if attempt < max_retries:
+                time.sleep(attempt * 3)
+
+        return None
