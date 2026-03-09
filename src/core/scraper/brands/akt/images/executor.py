@@ -27,12 +27,20 @@ def extract_total_images_and_uri_pattern(content: list[str]) -> tuple[str, str]:
 def create_urls_from_pattern(uri_base:str, model_name:str, extension:str, total_images:str) -> list[str]:
     """ Crea las URLs de las imágenes de la marca Akt """
     image_list = []
+    # Normalizar uri_base: quitar barra inicial si existe
+    uri_base_clean = uri_base.lstrip('/')
     for i in range(0,int(total_images)):
-        image_list.append(f"https://aktmotos.com/{uri_base}{model_name}-0{i+1}.{extension}")
+        image_list.append(f"https://aktmotos.com/{uri_base_clean}{model_name}-0{i+1}.{extension}")
     return image_list
 
 def handle_images(content):
     total_images, uri_pattern = extract_total_images_and_uri_pattern(content)
+    print(f"Total de imágenes: {total_images}")
+    print(f"URI pattern: {uri_pattern}")
     uri_base, model_name, extension = detect_url_pattern(uri_pattern)
+    print(f"URI base: {uri_base}")
+    print(f"Model name: {model_name}")
+    print(f"Extension: {extension}")
     urls_list = create_urls_from_pattern(uri_base, model_name, extension, total_images)
+    print(f"URLs list: {urls_list}")
     return urls_list
