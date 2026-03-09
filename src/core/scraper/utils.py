@@ -62,13 +62,34 @@ def extract_image_urls_from_html(html: str) -> list:
 
 def download_images(urls, base_name, output_dir="downloads", timeout=30):
     """Descarga imágenes desde una lista de URLs y las guarda numeradas."""
+    if not urls:
+        print("⚠️ No hay URLs para descargar")
+        return []
+
+    print(f"Ejecutando descarga de imágenes... Total URLs: {len(urls)}. Guardando en: {output_dir}")
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     results = []
     for idx, url in enumerate(urls, start=1):
         try:
-            response = requests.get(url, timeout=timeout)
+            # Extraer el dominio base de la URL para usar como Referer
+            parsed_url = urlparse(url)
+            referer = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+            # Headers para simular un navegador y evitar errores 403
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Referer': referer,
+                'Sec-Fetch-Dest': 'image',
+                'Sec-Fetch-Mode': 'no-cors',
+                'Sec-Fetch-Site': 'same-origin',
+            }
+
+            response = requests.get(url, headers=headers, timeout=timeout)
             response.raise_for_status()
 
             parsed = urlparse(url)
@@ -87,4 +108,5 @@ def download_images(urls, base_name, output_dir="downloads", timeout=30):
             # Registrar error sin detener todo el proceso
             results.append({"url": url, "error": str(exc), "ok": False})
 
+    print("Finalizó descarga de imágenes.")
     return results
