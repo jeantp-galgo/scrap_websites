@@ -110,6 +110,8 @@ def get_brand_from_url(url: str) -> str | None:
         return "vento"
     if "italika.mx" in url:
         return "italika"
+    if "grupouma.com" in url:
+        return "bajaj_co"
     if "honda.mx" in url:
         return "honda"
     if "yamaha-motor" in url:
