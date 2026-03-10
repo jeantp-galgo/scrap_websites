@@ -29,7 +29,12 @@ def create_urls_from_pattern(image_src: str, extension: str, total_images: int) 
     urls = []
     url_base = "https://grupouma.com/"
     total = int(total_images)
-    for i in range(1, total):
+    if total <= 1:
+        # Para consistencia, cuando hay 1 imagen se normaliza con consecutivo -01.
+        urls.append(f"{url_base}{image_src}-01.{extension}")
+        return urls
+
+    for i in range(1, total + 1):
         if total <= 10:
             index = f"0{i}"
         else:
