@@ -93,8 +93,8 @@ Search for these fields using their names in ANY language (Spanish, English, or 
 - Rear tire/Neumático trasero: rear tire size
 - Front suspension/Suspensión delantera: front suspension type
 - Rear suspension/Suspensión trasera: rear suspension type
-- Fuel/Combustible: fuel type
-- Fuel system/Sistema alimentación: fuel delivery system
+- Fuel/Combustible: fuel type (e.g., gasoline/petrol, diesel, flex, electric)
+- Fuel system/Sistema alimentación: fuel delivery system (e.g., carburetor, fuel injection, EFI/FI, PGM-FI, TBI, MPI, DFI)
 - Fuel capacity/Capacidad de combustible: fuel tank capacity
 - Fuel economy/Rendimiento: fuel consumption
 - Transmission type/Tipo de transmisión: transmission system
@@ -110,6 +110,11 @@ Search for these fields using their names in ANY language (Spanish, English, or 
 If a value is not found, return null for that field.
 Keep the original text format of the specification (do not convert units).
 Look for variations in naming and units across different languages.
+Important disambiguation:
+- "Fuel/Combustible" must capture only the energy source/type of fuel.
+- "Fuel system/Sistema alimentación" must capture only the delivery technology (carbureted vs injected, and variants).
+- If text says only "Gasolina/Petrol/Flex/Electrico", map it to Fuel/Combustible, not Fuel system.
+- If text says "Carburador/Carburada/Inyeccion/Inyeccion electronica/EFI/FI/PGM-FI", map it to Fuel system/Sistema alimentación.
         """
 
         actions = [
