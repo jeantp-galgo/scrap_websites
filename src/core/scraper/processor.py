@@ -10,6 +10,11 @@ from src.core.scraper.brands.tvs.handle import handle_tvs
 from src.core.scraper.brands.auteco_tvs.handle import handle_auteco_tvs
 from src.core.scraper.brands.akt.handle import handle_akt
 from src.core.scraper.brands.auteco_victory.handle import handle_auteco_victory
+from src.core.scraper.brands.bajaj_co.handle import handle_bajaj_co
+
+from bs4 import BeautifulSoup
+import re
+
 
 def check_website(url):
     print("url", url)
@@ -37,6 +42,9 @@ def check_website(url):
     if "aktmotos.com" in url:
         print("website: aktmotos")
         return "aktmotos"
+    if "grupouma.com" in url:
+        print("website: bajaj_co")
+        return "bajaj_co"
     if "auteco.com.co" in url:
         if "tvs" in url:
             print("website: auteco tvs")
@@ -73,6 +81,67 @@ class ImagesProcessor:
         """
         website = check_website(url)
 
+
+        if website == "bajaj_co":
+            actions = [
+                {"type": "scroll", "direction": "down"},
+                {"type": "wait", "milliseconds": 2000},
+                {"type": "scroll", "direction": "down"},
+            ]
+            content = self.scraper.get_content_from_website(url, formats=["html"], actions=actions, wait_for=1200)
+            soup = BeautifulSoup(content.html, "html.parser")
+
+            # 2) Detectar clases únicas tipo dsm_shapes_N
+            shape_classes = []
+            for el in soup.select("div.dsm_shapes"):
+                classes = el.get("class", [])
+                for c in classes:
+                    if re.match(r"^dsm_shapes_\d+$", c):
+                        shape_classes.append(c)
+
+            # quitar duplicados y ordenar por índice numérico
+            shape_classes = sorted(set(shape_classes), key=lambda x: int(x.split("_")[-1]))
+
+            # 3) Un request por botón (simple, sin mezclar clicks)
+            html_by_shape = {}
+
+            for shape_cls in shape_classes:
+                selector_outer = f"div.dsm_shapes.{shape_cls}"
+                selector_inner = f"{selector_outer} .et_pb_module_inner"
+
+                # Intento 1: click al contenedor interno (suele disparar mejor el evento)
+                result_click = self.scraper.get_content_from_website(
+                    url,
+                    formats=["html"],
+                    actions=[
+                        {"type": "scroll", "direction": "down"},
+                        {"type": "wait", "milliseconds": 1000},
+                        {"type": "click", "selector": selector_inner},
+                        {"type": "wait", "milliseconds": 1500},
+                    ],
+                    wait_for=1200
+                )
+                html_clicked = result_click.html
+
+                # Fallback: si no cambió, intentar click al contenedor externo
+                if html_clicked == content.html:
+                    result_click = self.scraper.get_content_from_website(
+                        url,
+                        formats=["html"],
+                        actions=[
+                            {"type": "scroll", "direction": "down"},
+                            {"type": "wait", "milliseconds": 1000},
+                            {"type": "click", "selector": selector_outer},
+                            {"type": "wait", "milliseconds": 1500},
+                        ],
+                        wait_for=1200
+                    )
+                    html_clicked = result_click.html
+
+                html_by_shape[shape_cls] = html_clicked
+                print(f"OK -> {shape_cls}")
+
+            return handle_bajaj_co("images", html_by_shape)
         if website == "vento":
             content = self.scraper.get_content_from_website(url, formats=["images"])
             return handle_vento("images", content.images)
@@ -208,6 +277,9 @@ class ImagesProcessor:
             # )
             # technical_specs_data = handle_auteco_victory("technical_specs", content)
 
+            return self.generic_technical_specs(url)
+
+        if website == "bajaj_co":
             return self.generic_technical_specs(url)
 
         if website == None:
