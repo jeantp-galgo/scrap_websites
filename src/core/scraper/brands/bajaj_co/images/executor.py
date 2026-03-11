@@ -35,10 +35,7 @@ def create_urls_from_pattern(image_src: str, extension: str, total_images: int) 
         return urls
 
     for i in range(1, total + 1):
-        if total <= 10:
-            index = f"0{i}"
-        else:
-            index = f"{i}"
+        index = f"{i:02d}"
         urls.append(f"{url_base}{image_src}-{index}.{extension}")
     return urls
 
