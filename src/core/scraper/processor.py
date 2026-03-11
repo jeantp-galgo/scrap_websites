@@ -11,7 +11,7 @@ from src.core.scraper.brands.auteco_tvs.handle import handle_auteco_tvs
 from src.core.scraper.brands.akt.handle import handle_akt
 from src.core.scraper.brands.auteco_victory.handle import handle_auteco_victory
 from src.core.scraper.brands.bajaj_co.handle import handle_bajaj_co
-
+from src.core.scraper.brands.suzuki_co.handle import handle_suzuki_co
 from bs4 import BeautifulSoup
 import re
 
@@ -45,6 +45,9 @@ def check_website(url):
     if "grupouma.com" in url:
         print("website: bajaj_co")
         return "bajaj_co"
+    if "suzuki.com.co" in url:
+        print("website: suzuki_co")
+        return "suzuki_co"
     if "auteco.com.co" in url:
         if "tvs" in url:
             print("website: auteco tvs")
@@ -61,8 +64,8 @@ class ImagesProcessor:
         self.scraper = ScrapingUtils()
         self.generic_extractor = GenericExtractor()
 
-    def test_extract(self, url: str, formats: list, actions: list = None, wait_for: int = 5000) -> list:
-        content = self.scraper.get_content_from_website(url, formats=formats, actions=actions, wait_for=wait_for)
+    def test_extract(self, url: str, formats: list, **kwargs) -> list:
+        content = self.scraper.get_content_from_website(url, formats=formats, **kwargs)
         return content
 
     def get_model_data(self, url: str):
@@ -81,6 +84,9 @@ class ImagesProcessor:
         """
         website = check_website(url)
 
+        if website == "suzuki_co":
+            content = self.scraper.get_content_from_website(url, formats=["images"])
+            return handle_suzuki_co("images", content)
 
         if website == "bajaj_co":
             actions = [
@@ -260,26 +266,15 @@ class ImagesProcessor:
 
         if website == "auteco_victory":
             print("Ejecutando auteco victory")
-            # actions = [
-            #     {"type": "scroll", "direction": "down"},
-            #     {"type": "wait", "milliseconds": 2000},
-            #     {"type": "scroll", "direction": "down"},
-            #     {"type": "wait", "milliseconds": 2000},
-            #     {"type": "scroll", "direction": "down"},
-            #     {"type": "wait", "milliseconds": 2000},
-            #     {"type": "scroll", "direction": "down"},
-            # ]
-            # content = self.scraper.get_content_from_website(
-            #     url,
-            #     formats=["html"],
-            #     wait_for=1200,
-            #     actions=actions,
-            # )
-            # technical_specs_data = handle_auteco_victory("technical_specs", content)
+            return self.generic_technical_specs(url)
 
+        if website == "aktmotos":
             return self.generic_technical_specs(url)
 
         if website == "bajaj_co":
+            return self.generic_technical_specs(url)
+
+        if website == "suzuki_co":
             return self.generic_technical_specs(url)
 
         if website == None:
