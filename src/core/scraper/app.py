@@ -13,7 +13,6 @@ class ScrapingUtils:
         doc = self.firecrawl.scrape(
             url=url,
             formats=formats,
-            wait_for=wait_for,
             **scrape_kwargs,
         )
         return doc
