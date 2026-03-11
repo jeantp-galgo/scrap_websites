@@ -92,6 +92,28 @@ def coerce_technical_specs_payload(payload: dict) -> dict:
             normalized[key] = str(value[0]) if value[0] else None
         elif value is not None:
             normalized[key] = str(value).strip() if str(value).strip() else None
+
+    # Fallback: extraer número de cambios desde el texto de transmisión.
+    if not normalized.get("numero_cambios") and normalized.get("tipo_transmision"):
+        transmission = normalized["tipo_transmision"].lower()
+        match = re.search(r"\b(\d+)\s*(velocidades|marchas|gears?|speed)\b", transmission)
+        if match:
+            normalized["numero_cambios"] = match.group(0)
+
+    # Fallback: corregir confusión entre tipo de combustible y sistema de alimentación.
+    combustible = (normalized.get("combustible") or "").strip()
+    sistema = (normalized.get("sistema_alimentacion") or "").strip()
+    sistema_keywords = ("carbur", "inye", "efi", "fi", "pgm-fi", "tbi", "mpi", "dfi")
+    combustible_keywords = ("gasolina", "petrol", "diesel", "diésel", "electr", "flex", "etanol", "hibr")
+
+    if combustible and any(k in combustible.lower() for k in sistema_keywords) and not sistema:
+        normalized["sistema_alimentacion"] = combustible
+        normalized["combustible"] = None
+
+    if sistema and any(k in sistema.lower() for k in combustible_keywords) and not combustible:
+        normalized["combustible"] = sistema
+        normalized["sistema_alimentacion"] = None
+
     return normalized
 
 
