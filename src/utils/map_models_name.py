@@ -1,11 +1,28 @@
 import json
-import os
 from pathlib import Path
 from typing import Dict
+import re
+import unicodedata
 
 # Ruta base del módulo para construir rutas absolutas
 _SRC_DIR = Path(__file__).resolve().parents[1]  # .../src/
 _MAPPING_DIR = _SRC_DIR / "data" / "json" / "name_mapping"
+
+
+def _canonical_model_key(modelo: str) -> str:
+    """Genera una clave canónica para comparar nombres de modelo con variaciones."""
+    text = (modelo or "").strip().lower()
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+
+    # Normalizaciones frecuentes en catálogos de motos.
+    text = re.sub(r"\bgo\s*pro\b", "gopro", text)
+    text = re.sub(r"\b(victory)(mrx)\b", r"\1 \2", text)
+    text = re.sub(r"\b(\d+)\s*s\b", r"\1s", text)  # "125 s" == "125s"
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
 
 def normalize_brand_name(marca: str) -> str:
@@ -49,10 +66,10 @@ def load_mapping_file(marca: str) -> Dict[str, str]:
     filepath = get_mapping_file_path(marca)
 
     if filepath.exists():
-        with open(filepath, "r", encoding="utf-8") as f:
-            mapeo = json.load(f)
+        with open(filepath, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
         print(f"Archivo de mapeo cargado: {filepath}")
-        return mapeo
+        return data
     else:
         # Crear directorio y archivo vacío
         filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -89,9 +106,13 @@ def map_model_name(modelo: str, mapeo_nombres: Dict[str, str]) -> str:
         Nombre mapeado si existe, o el nombre original si no
     """
     modelo_limpio = modelo.strip()
-    # Normalizar claves para comparación (strip de espacios)
-    mapeo_normalizado = {k.strip(): v for k, v in mapeo_nombres.items()}
-    return mapeo_normalizado.get(modelo_limpio, modelo_limpio)
+    modelo_key = _canonical_model_key(modelo_limpio)
+
+    for raw_key, mapped_value in mapeo_nombres.items():
+        if _canonical_model_key(raw_key) == modelo_key:
+            return mapped_value if mapped_value.strip() else modelo_limpio
+
+    return modelo_limpio
 
 
 def get_brand_from_url(url: str) -> str | None:
@@ -124,6 +145,8 @@ def get_brand_from_url(url: str) -> str | None:
         return "tvs"
     if "aktmotos.com" in url:
         return "aktmotos"
+    if "suzuki.com.co" in url:
+        return "suzuki"
     if "auteco.com.co" in url:
         if "tvs" in url:
             return "auteco_tvs"
@@ -167,14 +190,21 @@ def map_and_validate_model(model_data, marca: str | None):
         )
 
     modelo_original = model_data.model.strip()
+    modelo_canonico = _canonical_model_key(modelo_original)
     filepath = get_mapping_file_path(marca)
 
     # Cargar mapeo actual
     mapeo = load_mapping_file(marca)
 
-    # Verificar si el modelo existe y tiene valor
-    modelo_en_mapeo = modelo_original in {k.strip() for k in mapeo.keys()}
-    valor_mapeado = mapeo.get(modelo_original, "").strip()
+    # Resolver por coincidencia canónica para tolerar variaciones
+    raw_key_match = None
+    for raw_key in mapeo.keys():
+        if _canonical_model_key(raw_key) == modelo_canonico:
+            raw_key_match = raw_key
+            break
+
+    modelo_en_mapeo = raw_key_match is not None
+    valor_mapeado = mapeo.get(raw_key_match, "").strip() if raw_key_match else ""
 
     if not modelo_en_mapeo:
         # Agregar al JSON con valor vacío para que el usuario lo complete
@@ -189,12 +219,12 @@ def map_and_validate_model(model_data, marca: str | None):
 
     if valor_mapeado == "":
         raise ValueError(
-            f"Modelo '{modelo_original}' existe en el mapeo pero tiene valor vacío para marca '{marca}'.\n"
+            f"Modelo '{raw_key_match}' existe en el mapeo pero tiene valor vacío para marca '{marca}'.\n"
             f"Por favor, edita el archivo: {filepath}\n"
             f"y agrega el nombre correcto del marketplace, luego vuelve a ejecutar."
         )
 
     # Mapeo correcto: actualizar model_data
     model_data.model = valor_mapeado
-    print(f"Modelo mapeado: '{modelo_original}' -> '{valor_mapeado}'")
+    print(f"Modelo mapeado: '{modelo_original}' -> '{valor_mapeado}' (match: '{raw_key_match}')")
     return model_data
