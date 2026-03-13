@@ -49,12 +49,14 @@ def check_website(url):
         print("website: suzuki_co")
         return "suzuki_co"
     if "auteco.com.co" in url:
-        if "tvs" in url:
-            print("website: auteco tvs")
-            return "auteco_tvs"
-        if "victory" in url or "kawasaki" in url:
-            print("website: auteco victory o kawasaki")
+        # Victory, Kawasaki y Kymco tienen su propio handler
+        if "victory" in url or "kawasaki" in url or "kymco" in url:
+            print("website: auteco victory o kawasaki o kymco")
             return "auteco_victory"
+        # Todo lo demás en auteco.com.co es TVS (Apache, Raider, etc.)
+        # No se puede confiar en el slug para detectar TVS (ej. /apache-rtr-... no contiene "tvs")
+        print("website: auteco tvs")
+        return "auteco_tvs"
     else:
         print("website: none")
         return None
@@ -179,7 +181,8 @@ class ImagesProcessor:
 
             content_to_send = {
                 "content": content,
-                "og_image": url_meta_data
+                "og_image": url_meta_data,
+                "page_url": url,  # necesario para la intercepción de requests de red (canvas)
             }
             return handle_auteco_tvs("images", content_to_send)
         if website == "auteco_victory":
