@@ -148,9 +148,10 @@ def get_brand_from_url(url: str) -> str | None:
     if "suzuki.com.co" in url:
         return "suzuki"
     if "auteco.com.co" in url:
-        if "tvs" in url:
+        if "tvs" in url or "apache" in url:
             return "auteco_tvs"
-        if "victory" in url or "kawasaki" in url:
+        if "victory" in url or "kawasaki" or "kymco" in url:
+            print("website: auteco victory o kawasaki o kymco")
             return "auteco_victory"
     return None
 
