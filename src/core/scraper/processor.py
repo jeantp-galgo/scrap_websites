@@ -12,8 +12,6 @@ from src.core.scraper.brands.akt.handle import handle_akt
 from src.core.scraper.brands.auteco_victory.handle import handle_auteco_victory
 from src.core.scraper.brands.bajaj_co.handle import handle_bajaj_co
 from src.core.scraper.brands.suzuki_co.handle import handle_suzuki_co
-from bs4 import BeautifulSoup
-import re
 
 
 def check_website(url):
@@ -91,65 +89,8 @@ class ImagesProcessor:
             return handle_suzuki_co("images", content)
 
         if website == "bajaj_co":
-            actions = [
-                {"type": "scroll", "direction": "down"},
-                {"type": "wait", "milliseconds": 2000},
-                {"type": "scroll", "direction": "down"},
-            ]
-            content = self.scraper.get_content_from_website(url, formats=["html"], actions=actions, wait_for=1200)
-            soup = BeautifulSoup(content.html, "html.parser")
-
-            # 2) Detectar clases únicas tipo dsm_shapes_N
-            shape_classes = []
-            for el in soup.select("div.dsm_shapes"):
-                classes = el.get("class", [])
-                for c in classes:
-                    if re.match(r"^dsm_shapes_\d+$", c):
-                        shape_classes.append(c)
-
-            # quitar duplicados y ordenar por índice numérico
-            shape_classes = sorted(set(shape_classes), key=lambda x: int(x.split("_")[-1]))
-
-            # 3) Un request por botón (simple, sin mezclar clicks)
-            html_by_shape = {}
-
-            for shape_cls in shape_classes:
-                selector_outer = f"div.dsm_shapes.{shape_cls}"
-                selector_inner = f"{selector_outer} .et_pb_module_inner"
-
-                # Intento 1: click al contenedor interno (suele disparar mejor el evento)
-                result_click = self.scraper.get_content_from_website(
-                    url,
-                    formats=["html"],
-                    actions=[
-                        {"type": "scroll", "direction": "down"},
-                        {"type": "wait", "milliseconds": 1000},
-                        {"type": "click", "selector": selector_inner},
-                        {"type": "wait", "milliseconds": 1500},
-                    ],
-                    wait_for=1200
-                )
-                html_clicked = result_click.html
-
-                # Fallback: si no cambió, intentar click al contenedor externo
-                if html_clicked == content.html:
-                    result_click = self.scraper.get_content_from_website(
-                        url,
-                        formats=["html"],
-                        actions=[
-                            {"type": "scroll", "direction": "down"},
-                            {"type": "wait", "milliseconds": 1000},
-                            {"type": "click", "selector": selector_outer},
-                            {"type": "wait", "milliseconds": 1500},
-                        ],
-                        wait_for=1200
-                    )
-                    html_clicked = result_click.html
-
-                html_by_shape[shape_cls] = html_clicked
-                print(f"OK -> {shape_cls}")
-
-            return handle_bajaj_co("images", html_by_shape)
+            # Playwright: 1 sesión, 1 click en el primer dsm_shapes → todos los rotators
+            return handle_bajaj_co("images", url)
         if website == "vento":
             content = self.scraper.get_content_from_website(url, formats=["images"])
             return handle_vento("images", content.images)
@@ -176,13 +117,12 @@ class ImagesProcessor:
             content = self.scraper.get_content_from_website(url, formats=["html"])
             return handle_akt("images", content)
         if website == "auteco_tvs":
-            content = self.scraper.get_content_from_website(url, formats=["images"], wait_for=5000)
-            url_meta_data = content.metadata.og_image
-
+            # Playwright obtiene og_image y captura las imágenes del canvas directamente.
+            # No se necesita Firecrawl: og_image se lee del DOM en la misma sesión de Playwright.
             content_to_send = {
-                "content": content,
-                "og_image": url_meta_data,
-                "page_url": url,  # necesario para la intercepción de requests de red (canvas)
+                "content": None,
+                "og_image": None,
+                "page_url": url,
             }
             return handle_auteco_tvs("images", content_to_send)
         if website == "auteco_victory":
@@ -243,29 +183,15 @@ class ImagesProcessor:
             return handle_tvs("technical_specs", content)
 
         if website == "auteco_tvs":
-            selector = ".vtex-flex-layout-0-x-flexRowContent--disclosure-pdp-tvs-fr > div:first-child > button.vtex-disclosure-layout-1-x-trigger--trigger-d-pdp-tvs"
-            # Múltiples scrolls y esperas para cargar contenido dinámico antes del click
-            actions = [
-                {"type": "wait", "milliseconds": 3000},  # Espera inicial para que cargue la página
-                {"type": "scroll", "direction": "down"},  # Primer scroll
-                {"type": "wait", "milliseconds": 2000},  # Espera después del primer scroll
-                {"type": "scroll", "direction": "down"},  # Segundo scroll para cargar más contenido
-                {"type": "wait", "milliseconds": 2000},  # Espera después del segundo scroll
-                {"type": "scroll", "direction": "down"},  # Tercer scroll para asegurar que el botón esté visible
-                {"type": "wait", "milliseconds": 3000},  # Espera adicional para que el elemento sea clickeable
-                {
-                    "type": "click",
-                    "selector": selector
-                },  # click en el button dentro del primer div del contenedor (FICHA TÉCNICA es siempre el primero)
-                {"type": "wait", "milliseconds": 5000},  # Espera a que cargue el contenido expandido
-            ]
-            content = self.scraper.get_content_from_website(
-                url,
-                formats=["html"],
-                actions=actions,
-                wait_for=5000,  # Tiempo suficiente para que cargue la página inicial
-            )
-            return handle_auteco_tvs("technical_specs", content)
+            # El componente de specs es 100% JS (VTEX), Firecrawl no lo renderiza.
+            # Pasamos un objeto con la URL para que el executor use Playwright directamente.
+            class _UrlContent:
+                def __init__(self, u):
+                    self.html = None
+                    class _Meta:
+                        def __init__(self, u): self.url = u
+                    self.metadata = _Meta(u)
+            return handle_auteco_tvs("technical_specs", _UrlContent(url))
 
         if website == "auteco_victory":
             print("Ejecutando auteco victory")
