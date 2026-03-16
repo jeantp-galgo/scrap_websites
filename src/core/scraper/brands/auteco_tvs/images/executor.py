@@ -106,7 +106,7 @@ def get_images_from_url_pattern(urls_list: list[str]):
     return url_list_checked
 
 
-def capture_vtex_carousel_images(url: str, wait_ms: int = 8000) -> list[str]:
+def capture_vtex_carousel_images(url: str, wait_ms: int = 8000) -> tuple[list[str], str | None]:
     """
     Captura las URLs de imágenes del carrusel de VTEX interceptando los requests de red.
     Funciona incluso cuando las imágenes se renderizan dentro de un canvas.
@@ -119,7 +119,7 @@ def capture_vtex_carousel_images(url: str, wait_ms: int = 8000) -> list[str]:
         wait_ms: Tiempo de espera adicional tras el scroll (ms)
 
     Returns:
-        Lista de URLs únicas del carrusel (normalizadas a .../arquivos/ids/{ID}/)
+        Tupla (lista de URLs únicas del carrusel, og_image URL o None)
     """
     import asyncio, threading
 
@@ -134,6 +134,7 @@ def capture_vtex_carousel_images(url: str, wait_ms: int = 8000) -> list[str]:
         from playwright.async_api import async_playwright
 
         captured = []
+        og_image_found = [None]  # lista mutable para capturar desde el closure
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
@@ -173,6 +174,13 @@ def capture_vtex_carousel_images(url: str, wait_ms: int = 8000) -> list[str]:
 
             await page.goto(url, wait_until="domcontentloaded")
 
+            # Capturar og:image del DOM una vez cargado el HTML inicial
+            og_val = await page.evaluate(
+                "() => { const m = document.querySelector('meta[property=\"og:image\"]'); return m ? m.content : null; }"
+            )
+            if og_val:
+                og_image_found[0] = og_val
+
             # Espera inicial para que el JS de VTEX inicialice el carrusel
             await page.wait_for_timeout(3000)
 
@@ -191,7 +199,7 @@ def capture_vtex_carousel_images(url: str, wait_ms: int = 8000) -> list[str]:
 
             await browser.close()
 
-        return captured
+        return captured, og_image_found[0]
 
     def _run_in_thread():
         """
@@ -217,7 +225,7 @@ def capture_vtex_carousel_images(url: str, wait_ms: int = 8000) -> list[str]:
 
     def _thread_target():
         try:
-            result_container.extend(_run_in_thread())
+            result_container.append(_run_in_thread())
         except Exception as e:
             exc_container.append(e)
 
@@ -228,18 +236,18 @@ def capture_vtex_carousel_images(url: str, wait_ms: int = 8000) -> list[str]:
     if exc_container:
         raise exc_container[0]
 
-    captured_urls = result_container
+    raw_urls, og_image = result_container[0] if result_container else ([], None)
 
     # Eliminar duplicados preservando orden de aparición
     seen = set()
     unique_urls = []
-    for u in captured_urls:
+    for u in raw_urls:
         if u not in seen:
             seen.add(u)
             unique_urls.append(u)
 
-    print(f"[capture_vtex_carousel_images] URLs capturadas: {len(unique_urls)}")
-    return unique_urls
+    print(f"[capture_vtex_carousel_images] URLs capturadas: {len(unique_urls)}, og_image: {og_image}")
+    return unique_urls, og_image
 
 
 def extract_canva_images(og_image_url: str, iterations: int = 6) -> list[str]:
@@ -297,10 +305,13 @@ def extract_canva_images(og_image_url: str, iterations: int = 6) -> list[str]:
 
 def handle_images(content_data):
     """
-    Maneja la extracción de imágenes de galería.
+    Maneja la extracción de imágenes de galería para Auteco TVS.
+
+    Recibe un dict con 'page_url' (obligatorio) y opcionalmente
+    'content' e 'og_image' (legacy, ya no se usan si hay page_url).
 
     Flujo de prioridad:
-    1. Playwright (canvas vtexassets) — si og_image apunta a vtexassets/arquivos/ids/
+    1. Playwright (canvas vtexassets) — intercepta requests de red y obtiene og_image del DOM
     2. Imágenes tradicionales (patrón URL estándar con nombres de archivo)
     3. Fallback: og_image con incremento secuencial (último recurso)
     """
@@ -308,20 +319,29 @@ def handle_images(content_data):
 
     # Extraer datos de la estructura recibida
     content = content_data.get("content")
-    og_image = content_data.get("og_image")
+    og_image = content_data.get("og_image")  # puede venir de Firecrawl (legacy) o None
     page_url = content_data.get("page_url")
 
-    # 1. Interceptar requests de red con Playwright cuando hay canvas vtexassets
-    # El og_image apuntando a vtexassets/arquivos/ids/ es la señal de que hay carrusel canvas
+    # 1. Playwright: intercepta red y obtiene og_image del DOM directamente
     canvas_urls = []
-    if page_url and og_image and "vtexassets.com/arquivos/ids/" in og_image:
+    pw_og_image = None
+    if page_url:
         try:
-            print(f"Interceptando requests de red (canvas detectado por og_image vtexassets): {page_url}")
-            canvas_urls = capture_vtex_carousel_images(page_url)
-            print(f"Imágenes capturadas por intercepción de red: {len(canvas_urls)}")
+            print(f"[auteco_tvs] Interceptando requests de red con Playwright: {page_url}")
+            canvas_urls, pw_og_image = capture_vtex_carousel_images(page_url)
+            # Preferir og_image obtenido por Playwright sobre el de Firecrawl
+            if pw_og_image:
+                og_image = pw_og_image
+            print(f"[auteco_tvs] Imágenes capturadas: {len(canvas_urls)}, og_image: {og_image}")
         except Exception as e:
-            print(f"Error capturando imágenes por red: {e}")
+            print(f"[auteco_tvs] Error en Playwright: {e}")
 
+    # Si Playwright capturó imágenes del canvas VTEX, retornar directamente
+    if canvas_urls and og_image and "vtexassets.com/arquivos/ids/" in (og_image or ""):
+        all_image_urls.extend(canvas_urls)
+        return all_image_urls
+
+    # Si Playwright capturó algo (aunque no sea canvas), usarlo
     if canvas_urls:
         all_image_urls.extend(canvas_urls)
         return all_image_urls
@@ -330,26 +350,24 @@ def handle_images(content_data):
     if content and content.images:
         try:
             url_base, marca = detect_url_pattern(content.images)
-            print(f"URL base tradicional: {url_base}")
-            print(f"Marca detectada: {marca}")
-
+            print(f"[auteco_tvs] URL base tradicional: {url_base}, marca: {marca}")
             urls_list = create_urls_from_pattern(url_base, marca)
             urls_list_checked = get_images_from_url_pattern(urls_list)
             all_image_urls.extend(urls_list_checked)
         except Exception as e:
-            print(f"Error procesando imágenes tradicionales: {e}")
+            print(f"[auteco_tvs] Error procesando imágenes tradicionales: {e}")
 
     if all_image_urls:
         return all_image_urls
 
-    # 3. Fallback: og_image con incremento secuencial (solo si todo lo anterior falló)
+    # 3. Fallback: og_image con incremento secuencial (último recurso)
     if og_image:
         try:
-            print(f"Fallback: procesando og_image con incremento secuencial: {og_image}")
+            print(f"[auteco_tvs] Fallback og_image incremental: {og_image}")
             canva_urls = extract_canva_images(og_image)
-            print(f"Imágenes encontradas por fallback: {len(canva_urls)}")
+            print(f"[auteco_tvs] Imágenes por fallback: {len(canva_urls)}")
             all_image_urls.extend(canva_urls)
         except Exception as e:
-            print(f"Error procesando fallback og_image: {e}")
+            print(f"[auteco_tvs] Error en fallback og_image: {e}")
 
     return all_image_urls
