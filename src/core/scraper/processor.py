@@ -93,7 +93,7 @@ class ImagesProcessor:
             return handle_bajaj_co("images", url)
         if website == "vento":
             content = self.scraper.get_content_from_website(url, formats=["images"])
-            return handle_vento("images", content.images)
+            return handle_vento("images", content.images, url=url)
         if website == "italika":
             content = self.scraper.get_content_from_website(url, formats=["images"])
             return handle_italika("images", content.images)
